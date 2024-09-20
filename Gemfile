@@ -1,7 +1,12 @@
 source "https://rubygems.org"
 
-# Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 7.2.1"
+rails_version = "~> 7.2.1"
+
+gem "activesupport", rails_version
+gem "actionpack",    rails_version
+gem "actionview",    rails_version
+gem "activemodel",   rails_version
+gem "railties",      rails_version
 
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
@@ -43,5 +48,5 @@ group :test do
   gem "simplecov-console", require: false
 end
 
-gem "dockerfile-rails", ">= 1.6", group: :development
+# gem "dockerfile-rails", ">= 1.6", group: :development
 gem "ostruct"
