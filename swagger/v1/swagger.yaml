@@ -1,0 +1,47 @@
+---
+openapi: 3.0.1
+info:
+  title: API V1
+  version: v1
+  description: API for calculating shipment options
+paths:
+  "/api/v1/shipments":
+    post:
+      summary: Calculate shipment options
+      tags:
+      - Shipments
+      parameters: []
+      responses:
+        '200':
+          description: shipment options calculated
+        '422':
+          description: invalid criteria
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                origin_port:
+                  type: string
+                destination_port:
+                  type: string
+                criteria:
+                  type: string
+                  enum:
+                  - cheapest-direct
+                  - cheapest
+                  - fastest
+              required:
+              - origin_port
+              - destination_port
+              - criteria
+servers:
+- url: http://{defaultHost}
+  variables:
+    defaultHost:
+      default: localhost:3000
+- url: https://{defaultHost}
+  variables:
+    defaultHost:
+      default: www.example.com
