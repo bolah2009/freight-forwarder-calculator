@@ -14,9 +14,9 @@ class ShipmentProcessor
     when "cheapest-direct"
       find_cheapest_direct
     when "cheapest"
-      find_cheapest
+      find_optimal(:cost, method(:calculate_cost))
     when "fastest"
-      find_fastest
+      find_optimal(:time, method(:calculate_time))
     else
       raise "Invalid criteria"
     end
@@ -49,10 +49,10 @@ class ShipmentProcessor
     cheapest_sailing
   end
 
-  def find_cheapest
-    ports = ports_hash(:cost)
-    ports[@origin_port][:cost] = 0
-    queue = [ @origin_port ]
+  def find_optimal(weight_key, weight_calculator)
+    ports = ports_hash(weight_key)
+    ports[@origin_port][weight_key] = 0
+    queue = [@origin_port]
 
     until queue.empty?
       current_port = queue.shift
@@ -61,54 +61,21 @@ class ShipmentProcessor
 
       sailings.each do |sailing|
         destination_port = sailing["destination_port"]
+
         sailing_rate = find_sailing_rate(sailing["sailing_code"])
         next unless sailing_rate
 
-        rate_in_eur = converter.convert(
-          amount: sailing_rate["rate"],
-          currency: sailing_rate["rate_currency"],
-          date: sailing["departure_date"]
-        )
-        next unless rate_in_eur
+        weight = weight_calculator.call(sailing)
+        next unless weight
 
-        new_cost = current_info[:cost] + rate_in_eur
-        if new_cost < ports[destination_port][:cost]
-          ports[destination_port][:cost] = new_cost
-          ports[destination_port][:path] = current_info[:path] + [ sailing.merge(sailing_rate) ]
-          ports[destination_port][:arrival_date] = Date.parse(sailing["arrival_date"])
-          # We do not want to process ports from the last destination
-          queue << destination_port unless destination_port == @destination_port
-        end
-      end
-    end
+        new_weight = current_info[weight_key] + weight
+        next unless new_weight < ports[destination_port][weight_key]
 
-    ports[@destination_port][:path]
-  end
-
-  def find_fastest
-    ports = ports_hash(:time)
-    ports[@origin_port][:time] = 0
-    queue = [ @origin_port ]
-
-    until queue.empty?
-      current_port = queue.shift
-      current_info = ports[current_port]
-      sailings = sailings_from_current_port(current_port, current_info[:arrival_date])
-
-      sailings.each do |sailing|
-        destination_port = sailing["destination_port"]
-        sailing_rate = find_sailing_rate(sailing["sailing_code"])
-        next unless sailing_rate
-        time_taken = (Date.parse(sailing["arrival_date"]) - Date.parse(sailing["departure_date"])).to_i
-
-        new_time_taken = current_info[:time] + time_taken
-        if new_time_taken < ports[destination_port][:time]
-          ports[destination_port][:time] = new_time_taken
-          ports[destination_port][:path] = current_info[:path] + [ sailing.merge(sailing_rate) ]
-          ports[destination_port][:arrival_date] = Date.parse(sailing["arrival_date"])
-          # We do not want to process ports from the last destination
-          queue << destination_port unless destination_port == @destination_port
-        end
+        ports[destination_port][weight_key] = new_weight
+        ports[destination_port][:path] = current_info[:path] + [sailing.merge(sailing_rate)]
+        ports[destination_port][:arrival_date] = Date.parse(sailing["arrival_date"])
+        # We do not want to process ports from the last destination
+        queue << destination_port unless destination_port == @destination_port
       end
     end
     ports[@destination_port][:path]
@@ -125,8 +92,8 @@ class ShipmentProcessor
     # 3. will not go back to the origin_port (although this is already handled where origin weight are zero)
     @sailings.select do |sailing|
       (sailing["origin_port"] == current_port) &&
-      (!arrival_date || Date.parse(sailing["departure_date"]) > arrival_date)  &&
-      (sailing["destination_port"] != @origin_port)
+        (!arrival_date || Date.parse(sailing["departure_date"]) > arrival_date) &&
+        (sailing["destination_port"] != @origin_port)
     end
   end
 
@@ -134,7 +101,22 @@ class ShipmentProcessor
     CurrencyConverter.new(@exchange_rates)
   end
 
-  def ports_hash(weight)
-    Hash.new { |hash, key| hash[key] = { weight => Float::INFINITY, path: [], arrival_date: nil } }
+  def ports_hash(weight_key)
+    Hash.new { |hash, key| hash[key] = { weight_key => Float::INFINITY, path: [], arrival_date: nil } }
+  end
+
+  def calculate_cost(sailing)
+    sailing_rate = find_sailing_rate(sailing["sailing_code"])
+    return nil unless sailing_rate
+
+    converter.convert(
+      amount: sailing_rate["rate"],
+      currency: sailing_rate["rate_currency"],
+      date: sailing["departure_date"]
+    )
+  end
+
+  def calculate_time(sailing)
+    (Date.parse(sailing["arrival_date"]) - Date.parse(sailing["departure_date"])).to_i
   end
 end
