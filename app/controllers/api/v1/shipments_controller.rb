@@ -1,5 +1,5 @@
 class Api::V1::ShipmentsController < ApplicationController
-  before_action :require_params_presence, only: %i[create]
+  before_action :validate_params, only: %i[create]
 
   def create
     origin_port = params[:origin_port]
@@ -21,7 +21,7 @@ class Api::V1::ShipmentsController < ApplicationController
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
-  def require_params_presence
+  def validate_params
    return if  params[:origin_port].present? && params[:destination_port].present? && params[:criteria].present?
 
    render json: { error: "Missing required parameters" }, status: :unprocessable_entity
