@@ -5,9 +5,9 @@ class Api::V1::ShipmentsController < ApplicationController
     origin_port = params[:origin_port]
     destination_port = params[:destination_port]
     criteria = params[:criteria]
-    # criteria = "cheapest-direct"
-    # destination_port = "NLRTM"
+    # criteria = "cheapest"
     # origin_port = "CNSHA"
+    # destination_port = "NLRTM"
     processor = ShipmentProcessor.new(
       origin_port: origin_port,
       destination_port: destination_port,

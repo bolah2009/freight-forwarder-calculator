@@ -133,7 +133,7 @@ RSpec.describe "Api::V1::Shipments", type: :request do
         post '/api/v1/shipments', params: params, headers: headers
 
         expect(response).to have_http_status(:ok)
-        expect(json_response).to eq([ {} ])
+        expect(json_response).to eq([])
       end
     end
 
