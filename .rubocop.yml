@@ -1,6 +1,3 @@
-# Omakase Ruby styling for Rails
-inherit_gem: { rubocop-rails-omakase: rubocop.yml }
-
 require:
   - rubocop-performance
   - rubocop-rails
@@ -10,6 +7,7 @@ require:
 AllCops:
   NewCops: enable
   DisplayCopNames: true
+  SuggestExtensions: false
 
 Metrics/AbcSize:
   Max: 30
@@ -17,7 +15,6 @@ Metrics/AbcSize:
 Metrics/BlockLength:
   Exclude:
     - 'config/environments/*'
-    - 'db/seeds.rb'
 
 Metrics/MethodLength:
   Max: 20
@@ -25,16 +22,18 @@ Metrics/MethodLength:
 Rails/I18nLocaleTexts:
   Enabled: false
 
-Rails/Output:
-  Exclude:
-    - 'db/seeds.rb'
-
 RSpec/NestedGroups:
   Max: 5
 
 RSpec/MultipleMemoizedHelpers:
   Max: 10
 
+RSpec/EmptyExampleGroup:
+  Exclude:
+    - 'spec/integration/shipments_spec.rb'
+RSpec/DescribeClass:
+  Exclude:
+    - 'spec/integration/shipments_spec.rb'
 Style/Documentation:
   Enabled: false
 Style/FrozenStringLiteralComment:
