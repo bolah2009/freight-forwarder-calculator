@@ -34,7 +34,7 @@ RSpec.configure do |config|
           url: "https://{defaultHost}",
           variables: {
             defaultHost: {
-              default: "www.example.com"
+              default: "freight-forwarder-calculator.fly.dev"
             }
           }
         }
