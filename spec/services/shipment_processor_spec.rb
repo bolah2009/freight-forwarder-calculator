@@ -894,6 +894,11 @@ RSpec.describe ShipmentProcessor, type: :service do
           "sailing_code" => "S3",
           "rate" => "100",
           "rate_currency" => "EUR"
+        },
+        {
+          "sailing_code" => "S4",
+          "rate" => "100",
+          "rate_currency" => "EUR"
         }
       ]
     end
@@ -1129,7 +1134,6 @@ RSpec.describe ShipmentProcessor, type: :service do
 
       it "returns one of the routes with the earliest arrival date" do
         expected_arrival_date = Date.parse("2022-01-08")
-
         actual_arrival_date = Date.parse(result.last["arrival_date"])
 
         expect(actual_arrival_date).to eq(expected_arrival_date)
