@@ -1,17 +1,23 @@
-require 'rails_helper'
+require "rails_helper"
 
-RSpec.describe "Api::V1::Shipments", type: :request do
-  describe 'POST /api/v1/shipments' do
-    let(:headers) { { 'Content-Type' => 'application/json' } }
-
-    before do
-      allow(DataLoader).to receive(:load_data).and_return(data)
+RSpec.describe "Api::V1::Shipments" do
+  shared_examples "a successful request" do
+    it "respond with a success status" do
+      expect(response).to have_http_status(:success)
     end
+  end
 
+  shared_examples "an unsuccessful request" do
+    it "respond with a success status" do
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
+  describe "POST /api/v1/shipments" do
+    let(:headers) { { "Content-Type" => "application/json" } }
     let(:sailings) { [] }
     let(:rates) { [] }
     let(:exchange_rates) { {} }
-
     let(:data) do
       {
         "sailings" => sailings,
@@ -19,14 +25,18 @@ RSpec.describe "Api::V1::Shipments", type: :request do
         "exchange_rates" => exchange_rates
       }
     end
-    let(:json_response) { JSON.parse(response.body) }
+    let(:json_response) { response.parsed_body }
 
-    context 'when valid parameters are provided' do
+    before do
+      allow(DataLoader).to receive(:load_data).and_return(data)
+    end
+
+    context "when valid parameters are provided" do
       let(:params) do
         {
-          origin_port: 'CNSHA',
-          destination_port: 'NLRTM',
-          criteria: 'cheapest-direct'
+          origin_port: "CNSHA",
+          destination_port: "NLRTM",
+          criteria: "cheapest-direct"
         }.to_json
       end
 
@@ -60,12 +70,8 @@ RSpec.describe "Api::V1::Shipments", type: :request do
         }
       end
 
-      it 'returns the shipment options' do
-        post '/api/v1/shipments', params: params, headers: headers
-
-        expect(response).to have_http_status(:ok)
-
-        expected_response = [
+      let(:expected_response) do
+        [
           {
             "origin_port" => "CNSHA",
             "destination_port" => "NLRTM",
@@ -76,52 +82,60 @@ RSpec.describe "Api::V1::Shipments", type: :request do
             "rate_currency" => "USD"
           }
         ]
+      end
 
+      before { post("/api/v1/shipments", params:, headers:) }
+
+      it "returns the shipment options" do
         expect(json_response).to eq(expected_response)
       end
+
+      it_behaves_like "a successful request"
     end
 
-    context 'when invalid criteria is provided' do
+    context "when invalid criteria is provided" do
       let(:params) do
         {
-          origin_port: 'CNSHA',
-          destination_port: 'NLRTM',
-          criteria: 'invalid-criteria'
-      }.to_json
-      end
-
-      it 'returns an error message' do
-        post '/api/v1/shipments', params: params, headers: headers
-
-        expect(response).to have_http_status(:unprocessable_entity)
-        expected_response = { "error" => "Invalid criteria" }
-        expect(json_response).to eq(expected_response)
-      end
-    end
-
-    context 'when required parameters are missing' do
-      let(:params) do
-        {
-          origin_port: 'CNSHA',
-          criteria: 'cheapest-direct'
+          origin_port: "CNSHA",
+          destination_port: "NLRTM",
+          criteria: "invalid-criteria"
         }.to_json
       end
 
-      it 'returns an error message' do
-        post '/api/v1/shipments', params: params, headers: headers
+      before { post("/api/v1/shipments", params:, headers:) }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+      it "returns an error message" do
+        expected_response = { "error" => "Invalid criteria" }
+        expect(json_response).to eq(expected_response)
+      end
+
+      it_behaves_like "an unsuccessful request"
+    end
+
+    context "when required parameters are missing" do
+      let(:params) do
+        {
+          origin_port: "CNSHA",
+          criteria: "cheapest-direct"
+        }.to_json
+      end
+
+      before { post("/api/v1/shipments", params:, headers:) }
+
+      it "returns an error message" do
         expected_response = { "error" => "Missing required parameters" }
         expect(json_response).to eq(expected_response)
       end
+
+      it_behaves_like "an unsuccessful request"
     end
 
-    context 'when no sailings are found' do
+    context "when no sailings are found" do
       let(:params) do
         {
-          origin_port: 'CNSHA',
-          destination_port: 'NONEXISTENT',
-          criteria: 'cheapest-direct'
+          origin_port: "CNSHA",
+          destination_port: "NONEXISTENT",
+          criteria: "cheapest-direct"
         }.to_json
       end
 
@@ -129,34 +143,38 @@ RSpec.describe "Api::V1::Shipments", type: :request do
       let(:rates) { [] }
       let(:exchange_rates) { {} }
 
-      it 'returns an empty array' do
-        post '/api/v1/shipments', params: params, headers: headers
+      before { post("/api/v1/shipments", params:, headers:) }
 
-        expect(response).to have_http_status(:ok)
+      it "returns an empty array" do
         expect(json_response).to eq([])
       end
+
+      it_behaves_like "a successful request"
     end
 
-    context 'when an exception occurs during processing' do
+    context "when an exception occurs during processing" do
       let(:params) do
         {
-          origin_port: 'CNSHA',
-          destination_port: 'NLRTM',
-          criteria: 'cheapest-direct'
+          origin_port: "CNSHA",
+          destination_port: "NLRTM",
+          criteria: "cheapest-direct"
         }.to_json
       end
 
+      let(:shipment_processor) { instance_double(ShipmentProcessor) }
+
       before do
-        allow_any_instance_of(ShipmentProcessor).to receive(:process).and_raise(StandardError, 'Something went wrong')
+        allow(ShipmentProcessor).to receive(:new).and_return(shipment_processor)
+        allow(shipment_processor).to receive(:process).and_raise(StandardError, "Something went wrong")
+        post("/api/v1/shipments", params:, headers:)
       end
 
-      it 'returns an error message' do
-        post '/api/v1/shipments', params: params, headers: headers
-
-        expect(response).to have_http_status(:unprocessable_entity)
+      it "returns an error message" do
         expected_response = { "error" => "Something went wrong" }
         expect(json_response).to eq(expected_response)
       end
+
+      it_behaves_like "an unsuccessful request"
     end
   end
 end
