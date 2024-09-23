@@ -87,7 +87,9 @@ class ShipmentProcessor
   end
 
   def find_sailing_rate(sailing_code)
-    @rates.find { |rate| rate["sailing_code"] == sailing_code }
+    Rails.cache.fetch("v1_sailing_rate/#{sailing_code}", expires_in: 12.hours) do
+      @rates.find { |rate| rate["sailing_code"] == sailing_code }
+    end
   end
 
   def sailings_from_current_port(current_port, arrival_date)
