@@ -12,7 +12,7 @@ class ShipmentProcessor
   def process
     case @criteria
     when "cheapest-direct"
-      find_cheapest_direct
+      find_optimal(:cost, method(:calculate_cost), 1).first
     when "cheapest"
       find_optimal(:cost, method(:calculate_cost))
     when "fastest"
@@ -24,33 +24,7 @@ class ShipmentProcessor
 
   private
 
-  def find_cheapest_direct
-    cheapest_sailing = nil
-    @sailings.each do |sailing|
-      next unless direct_sailing?(sailing)
-
-      sailing_rate = find_sailing_rate(sailing["sailing_code"])
-      next unless sailing_rate
-
-      rate_in_eur = calculate_cost(sailing)
-      next unless rate_in_eur
-
-      cheapest_sailing = update_cheapest_sailing(cheapest_sailing, sailing, sailing_rate, rate_in_eur)
-    end
-
-    cheapest_sailing&.delete("rate_in_eur")
-    cheapest_sailing
-  end
-
-  def update_cheapest_sailing(current_cheapest, sailing, sailing_rate, rate_in_eur)
-    if current_cheapest.nil? || rate_in_eur < current_cheapest["rate_in_eur"]
-      sailing.merge(sailing_rate, "rate_in_eur" => rate_in_eur)
-    else
-      current_cheapest
-    end
-  end
-
-  def find_optimal(weight_key, weight_calculator)
+  def find_optimal(weight_key, weight_calculator, max_stop = Float::INFINITY)
     ports = ports_hash(weight_key)
     ports[@origin_port][weight_key] = 0
     queue = [@origin_port]
@@ -60,22 +34,28 @@ class ShipmentProcessor
       current_info = ports[current_port]
 
       @sailings.each do |sailing|
-        next unless valid_sailing?(sailing, current_port, current_info[:arrival_date])
-
-        destination_port = sailing["destination_port"]
-        weight = weight_calculator.call(sailing)
-        next unless weight
-
-        new_weight = current_info[weight_key] + weight
-        next unless new_weight < ports[destination_port][weight_key]
-
-        update_port_info(new_weight, current_info, sailing, weight_key, ports)
-
-        # We do not want to process ports from the last destination
-        queue << destination_port unless destination_port == @destination_port
+        process_sailing(sailing, ports, queue, current_port, current_info, weight_key, max_stop, weight_calculator)
       end
     end
     ports[@destination_port][:path]
+  end
+
+  def process_sailing(sailing, ports, queue, current_port, current_info, weight_key, max_stop, weight_calculator) # rubocop:disable Metrics/ParameterLists
+    return unless valid_sailing?(sailing, current_port, current_info[:arrival_date])
+
+    destination_port = sailing["destination_port"]
+    return unless current_info[:stops] < max_stop
+
+    weight = weight_calculator.call(sailing)
+    return unless weight
+
+    new_weight = current_info[weight_key] + weight
+    return unless new_weight < ports[destination_port][weight_key]
+
+    update_port_info(new_weight, current_info, sailing, weight_key, ports)
+
+    # We do not want to process ports from the last destination
+    queue << destination_port unless destination_port == @destination_port
   end
 
   def update_port_info(new_weight, current_info, sailing, weight_key, ports)
@@ -83,6 +63,7 @@ class ShipmentProcessor
     ports[destination_port][weight_key] = new_weight
     sailing_data = sailing.merge(find_sailing_rate(sailing["sailing_code"]))
     ports[destination_port][:path] = current_info[:path] + [sailing_data]
+    ports[destination_port][:stops] = current_info[:stops] + 1
     ports[destination_port][:arrival_date] = Date.parse(sailing["arrival_date"])
   end
 
@@ -107,7 +88,9 @@ class ShipmentProcessor
   end
 
   def ports_hash(weight_key)
-    Hash.new { |hash, key| hash[key] = { weight_key => Float::INFINITY, path: [], arrival_date: nil } }
+    Hash.new do |hash, key|
+      hash[key] = { weight_key => Float::INFINITY, path: [], arrival_date: nil, stops: 0 }
+    end
   end
 
   def calculate_cost(sailing)
@@ -123,9 +106,5 @@ class ShipmentProcessor
 
   def calculate_time(sailing)
     (Date.parse(sailing["arrival_date"]) - Date.parse(sailing["departure_date"])).to_i
-  end
-
-  def direct_sailing?(sailing)
-    sailing["origin_port"] == @origin_port && sailing["destination_port"] == @destination_port
   end
 end
