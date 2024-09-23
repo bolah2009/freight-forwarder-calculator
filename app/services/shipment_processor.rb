@@ -58,11 +58,11 @@ class ShipmentProcessor
     until queue.empty?
       current_port = queue.shift
       current_info = ports[current_port]
-      sailings = sailings_from_current_port(current_port, current_info[:arrival_date])
 
-      sailings.each do |sailing|
+      @sailings.each do |sailing|
+        next unless valid_sailing?(sailing, current_port, current_info[:arrival_date])
+
         destination_port = sailing["destination_port"]
-
         weight = weight_calculator.call(sailing)
         next unless weight
 
@@ -92,16 +92,14 @@ class ShipmentProcessor
     end
   end
 
-  def sailings_from_current_port(current_port, arrival_date)
-    # We select only the sailing that:
+  def valid_sailing?(sailing, current_port, arrival_date)
+    # We consider a sailing valid if it:
     # 1. has the same origin_port as the current_port
     # 2. will not depart ealier than the current arrival date (if it exists)
     # 3. will not go back to the origin_port (although this is already handled where origin weight are zero)
-    @sailings.select do |sailing|
-      (sailing["origin_port"] == current_port) &&
-        (!arrival_date || Date.parse(sailing["departure_date"]) > arrival_date) &&
-        (sailing["destination_port"] != @origin_port)
-    end
+    (sailing["origin_port"] == current_port) &&
+      (!arrival_date || Date.parse(sailing["departure_date"]) > arrival_date) &&
+      (sailing["destination_port"] != @origin_port)
   end
 
   def converter
