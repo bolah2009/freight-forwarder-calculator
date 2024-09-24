@@ -16,7 +16,7 @@ class ShipmentProcessor
     when "cheapest-direct"
       @max_stops = 0
       @weight_key = :cost
-      find_optimal(method(:calculate_cost)).first
+      find_optimal(method(:calculate_cost))
     when "cheapest"
       @weight_key = :cost
       find_optimal(method(:calculate_cost))
