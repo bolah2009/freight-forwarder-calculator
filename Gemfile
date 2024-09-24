@@ -46,7 +46,6 @@ end
 group :test do
   gem "capybara"
   gem "simplecov", require: false
-  gem "simplecov-cobertura", require: false
   gem "simplecov-console", require: false
 end
 
