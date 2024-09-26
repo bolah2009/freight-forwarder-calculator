@@ -28,7 +28,7 @@ RSpec.describe "Api::V1::Shipments" do
     let(:json_response) { response.parsed_body }
 
     before do
-      allow(DataLoader).to receive(:load_data).and_return(data)
+      allow(DataLoader).to receive(:fetch).and_return(data)
     end
 
     context "when valid parameters are provided" do

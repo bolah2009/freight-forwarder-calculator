@@ -23,29 +23,29 @@ RSpec.describe "Shipments API" do
         let(:shipment) { { origin_port: "CNSHA", destination_port: "NLRTM", criteria: "cheapest-direct" } }
 
         before do
-          allow(DataLoader).to receive(:load_data).and_return({
-                                                                "sailings" => [
-                                                                  {
-                                                                    "origin_port" => "CNSHA",
-                                                                    "destination_port" => "NLRTM",
-                                                                    "departure_date" => "2022-02-01",
-                                                                    "arrival_date" => "2022-03-01",
-                                                                    "sailing_code" => "ABCD"
-                                                                  }
-                                                                ],
-                                                                "rates" => [
-                                                                  {
-                                                                    "sailing_code" => "ABCD",
-                                                                    "rate" => "589.30",
-                                                                    "rate_currency" => "USD"
-                                                                  }
-                                                                ],
-                                                                "exchange_rates" => {
-                                                                  "2022-02-01" => {
-                                                                    "usd" => 1.1260
-                                                                  }
-                                                                }
-                                                              })
+          allow(DataLoader).to receive(:fetch).and_return({
+                                                            "sailings" => [
+                                                              {
+                                                                "origin_port" => "CNSHA",
+                                                                "destination_port" => "NLRTM",
+                                                                "departure_date" => "2022-02-01",
+                                                                "arrival_date" => "2022-03-01",
+                                                                "sailing_code" => "ABCD"
+                                                              }
+                                                            ],
+                                                            "rates" => [
+                                                              {
+                                                                "sailing_code" => "ABCD",
+                                                                "rate" => "589.30",
+                                                                "rate_currency" => "USD"
+                                                              }
+                                                            ],
+                                                            "exchange_rates" => {
+                                                              "2022-02-01" => {
+                                                                "usd" => 1.1260
+                                                              }
+                                                            }
+                                                          })
         end
 
         run_test! do |_response|

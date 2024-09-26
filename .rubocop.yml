@@ -9,6 +9,9 @@ AllCops:
   DisplayCopNames: true
   SuggestExtensions: false
 
+Lint/MissingSuper:
+  AllowedParentClasses: [BaseCalculator]
+
 Metrics/AbcSize:
   Max: 30
 

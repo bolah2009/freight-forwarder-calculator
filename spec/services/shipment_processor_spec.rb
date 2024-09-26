@@ -23,7 +23,7 @@ RSpec.describe ShipmentProcessor, type: :service do
   let(:result) { processor.process }
 
   before do
-    allow(DataLoader).to receive(:load_data).and_return(data)
+    allow(DataLoader).to receive(:fetch).and_return(data)
   end
 
   describe "#find_cheapest_direct" do
