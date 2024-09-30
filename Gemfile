@@ -34,6 +34,8 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
   gem "bundle-audit", require: false
+  gem "pry-byebug"
+  gem "pry-rails"
   gem "rubocop", require: false
   gem "rubocop-performance", require: false
   gem "rubocop-rails", require: false
@@ -44,7 +46,6 @@ end
 group :test do
   gem "capybara"
   gem "simplecov", require: false
-  gem "simplecov-cobertura", require: false
   gem "simplecov-console", require: false
 end
 

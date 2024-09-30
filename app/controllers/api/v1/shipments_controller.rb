@@ -7,9 +7,6 @@ module Api
         origin_port = params[:origin_port]
         destination_port = params[:destination_port]
         criteria = params[:criteria]
-        # criteria = "cheapest"
-        # origin_port = "CNSHA"
-        # destination_port = "NLRTM"
         processor = ShipmentProcessor.new(
           origin_port:,
           destination_port:,

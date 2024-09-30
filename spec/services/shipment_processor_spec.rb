@@ -4,7 +4,7 @@ RSpec.describe ShipmentProcessor, type: :service do
   let(:exchange_rates) { {} }
   let(:processor) do
     described_class.new(
-      origin_port:,
+      origin_port: "CNSHA",
       destination_port:,
       criteria:
     )
@@ -18,20 +18,18 @@ RSpec.describe ShipmentProcessor, type: :service do
       "exchange_rates" => exchange_rates
     }
   end
+  let(:destination_port) { "NLRTM" }
 
   let(:result) { processor.process }
 
   before do
-    allow(DataLoader).to receive(:load_data).and_return(data)
+    allow(DataLoader).to receive(:fetch).and_return(data)
   end
 
   describe "#find_cheapest_direct" do
     let(:criteria) { "cheapest-direct" }
 
     context "when direct sailings are available" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -74,8 +72,9 @@ RSpec.describe ShipmentProcessor, type: :service do
           }
         }
       end
+
       let(:expected_result) do
-        {
+        [{
           "origin_port" => "CNSHA",
           "destination_port" => "NLRTM",
           "departure_date" => "2022-02-01",
@@ -83,7 +82,7 @@ RSpec.describe ShipmentProcessor, type: :service do
           "sailing_code" => "ABCD",
           "rate" => "589.30",
           "rate_currency" => "USD"
-        }
+        }]
       end
 
       it "returns the cheapest direct sailing" do
@@ -92,9 +91,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when multiple direct sailings have the same rate in EUR" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -138,7 +134,7 @@ RSpec.describe ShipmentProcessor, type: :service do
       end
 
       let(:expected_result) do
-        {
+        [{
           "origin_port" => "CNSHA",
           "destination_port" => "NLRTM",
           "departure_date" => "2022-02-01",
@@ -146,7 +142,7 @@ RSpec.describe ShipmentProcessor, type: :service do
           "sailing_code" => "ABCD",
           "rate" => "100",
           "rate_currency" => "EUR"
-        }
+        }]
       end
 
       it "returns the first sailing found with the cheapest rate" do
@@ -155,7 +151,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when no direct sailings are available" do
-      let(:origin_port) { "CNSHA" }
       let(:destination_port) { "NONEXISTENT" }
 
       let(:sailings) do
@@ -170,15 +165,12 @@ RSpec.describe ShipmentProcessor, type: :service do
         ]
       end
 
-      it "returns nil" do
-        expect(result).to be_nil
+      it "returns returns an empty array" do
+        expect(result).to be_empty
       end
     end
 
     context "when a sailing has no associated rate" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -210,7 +202,7 @@ RSpec.describe ShipmentProcessor, type: :service do
       end
 
       let(:expected_result) do
-        {
+        [{
           "origin_port" => "CNSHA",
           "destination_port" => "NLRTM",
           "departure_date" => "2022-02-02",
@@ -218,7 +210,7 @@ RSpec.describe ShipmentProcessor, type: :service do
           "sailing_code" => "EFGH",
           "rate" => "890.32",
           "rate_currency" => "EUR"
-        }
+        }]
       end
 
       it "skips the sailing without a rate and returns the cheapest among those with rates" do
@@ -227,9 +219,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when exchange rate for a currency is missing" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -261,15 +250,12 @@ RSpec.describe ShipmentProcessor, type: :service do
         }
       end
 
-      it "skips the sailing if exchange rate is missing and returns nil" do
-        expect(result).to be_nil
+      it "skips the sailing if exchange rate is missing and returns an empty array" do
+        expect(result).to be_empty
       end
     end
 
     context "when sailing rate currency is unsupported" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -301,15 +287,12 @@ RSpec.describe ShipmentProcessor, type: :service do
         }
       end
 
-      it "skips the sailing with unsupported currency and returns nil" do
-        expect(result).to be_nil
+      it "skips the sailing with unsupported currency and returns an empty array" do
+        expect(result).to be_empty
       end
     end
 
     context "when all direct sailings are in EUR" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -344,7 +327,7 @@ RSpec.describe ShipmentProcessor, type: :service do
         ]
       end
       let(:expected_result) do
-        {
+        [{
           "origin_port" => "CNSHA",
           "destination_port" => "NLRTM",
           "departure_date" => "2022-02-02",
@@ -352,7 +335,7 @@ RSpec.describe ShipmentProcessor, type: :service do
           "sailing_code" => "EFGH",
           "rate" => "450",
           "rate_currency" => "EUR"
-        }
+        }]
       end
 
       it "returns the sailing with the lower EUR rate" do
@@ -361,9 +344,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when sailings have mixed currencies" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -406,7 +386,7 @@ RSpec.describe ShipmentProcessor, type: :service do
         }
       end
       let(:expected_result) do
-        {
+        [{
           "origin_port" => "CNSHA",
           "destination_port" => "NLRTM",
           "departure_date" => "2022-02-01",
@@ -414,7 +394,7 @@ RSpec.describe ShipmentProcessor, type: :service do
           "sailing_code" => "ABCD",
           "rate" => "500",
           "rate_currency" => "USD"
-        }
+        }]
       end
 
       it "correctly converts rates and returns the cheapest sailing" do
@@ -426,9 +406,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when sailing date has no exchange rate data" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -459,8 +436,8 @@ RSpec.describe ShipmentProcessor, type: :service do
         }
       end
 
-      it "skips the sailing and returns nil" do
-        expect(result).to be_nil
+      it "skips the sailing and returns an empty array" do
+        expect(result).to be_empty
       end
     end
   end
@@ -469,9 +446,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     let(:criteria) { "cheapest" }
 
     context "when there is a cheaper indirect route" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -546,9 +520,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when the direct route is cheaper than indirect routes" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -614,9 +585,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when a route points back to the origin route" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -703,7 +671,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when no route is available" do
-      let(:origin_port) { "CNSHA" }
       let(:destination_port) { "NONEXISTENT" }
 
       let(:sailings) { [] }
@@ -716,9 +683,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when timing constraints prevent a route" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -759,9 +723,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when multiple routes have the same total cost" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -904,9 +865,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when there is a faster indirect route" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -961,9 +919,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when the direct route is faster than indirect routes" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -1010,7 +965,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when no route is available" do
-      let(:origin_port) { "CNSHA" }
       let(:destination_port) { "NONEXISTENT" }
 
       let(:sailings) { [] }
@@ -1023,9 +977,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when timing constraints prevent a route" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -1051,9 +1002,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when multiple routes have the same earliest arrival date" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           {
@@ -1145,9 +1093,6 @@ RSpec.describe ShipmentProcessor, type: :service do
     end
 
     context "when sailings have overlapping schedules but lead to earlier arrival" do
-      let(:origin_port) { "CNSHA" }
-      let(:destination_port) { "NLRTM" }
-
       let(:sailings) do
         [
           # Sailing that departs later but arrives earlier
@@ -1185,6 +1130,188 @@ RSpec.describe ShipmentProcessor, type: :service do
       end
 
       it "chooses the sailing with the earliest arrival date" do
+        expect(result).to eq(expected_result)
+      end
+    end
+  end
+
+  describe "@max_stops" do
+    let(:processor) do
+      described_class.new(
+        origin_port: "CNSHA",
+        destination_port:,
+        criteria: "cheapest",
+        max_stops:
+      )
+    end
+    let(:sailings) do
+      [
+        {
+          "origin_port" => "CNSHA",
+          "destination_port" => "NLRTM",
+          "departure_date" => "2022-02-01",
+          "arrival_date" => "2022-03-01",
+          "sailing_code" => "ABCD"
+        },
+        {
+          "origin_port" => "CNSHA",
+          "destination_port" => "NLRTM",
+          "departure_date" => "2022-02-02",
+          "arrival_date" => "2022-03-02",
+          "sailing_code" => "EFGH"
+        },
+        {
+          "origin_port" => "CNSHA",
+          "destination_port" => "ESBCN",
+          "departure_date" => "2022-02-01",
+          "arrival_date" => "2022-02-10",
+          "sailing_code" => "IJKL"
+        },
+        {
+          "origin_port" => "ESBCN",
+          "destination_port" => "NLRTM",
+          "departure_date" => "2022-02-11",
+          "arrival_date" => "2022-02-20",
+          "sailing_code" => "MNOP"
+        },
+        {
+          "origin_port" => "ESBCN",
+          "destination_port" => "BRSSZ",
+          "departure_date" => "2022-02-11",
+          "arrival_date" => "2022-02-14",
+          "sailing_code" => "QRST"
+        },
+        {
+          "origin_port" => "BRSSZ",
+          "destination_port" => "NLRTM",
+          "departure_date" => "2022-02-15",
+          "arrival_date" => "2022-02-18",
+          "sailing_code" => "UVWX"
+        }
+      ]
+    end
+    let(:rates) do
+      [
+        {
+          "sailing_code" => "ABCD",
+          "rate" => "1000.30",
+          "rate_currency" => "EUR"
+        },
+        {
+          "sailing_code" => "EFGH",
+          "rate" => "500.32",
+          "rate_currency" => "EUR"
+        },
+        {
+          "sailing_code" => "IJKL",
+          "rate" => "200.32",
+          "rate_currency" => "EUR"
+        },
+        {
+          "sailing_code" => "MNOP",
+          "rate" => "200.32",
+          "rate_currency" => "EUR"
+        },
+        {
+          "sailing_code" => "QRST",
+          "rate" => "100.32",
+          "rate_currency" => "EUR"
+        },
+        {
+          "sailing_code" => "UVWX",
+          "rate" => "50.32",
+          "rate_currency" => "EUR"
+        }
+      ]
+    end
+
+    context "when max_stops is 0" do
+      let(:max_stops) { 0 }
+      let(:expected_result) do
+        [{
+          "origin_port" => "CNSHA",
+          "destination_port" => "NLRTM",
+          "departure_date" => "2022-02-02",
+          "arrival_date" => "2022-03-02",
+          "sailing_code" => "EFGH",
+          "rate" => "500.32",
+          "rate_currency" => "EUR"
+        }]
+      end
+
+      it "returns the cheapest direct sailing" do
+        expect(result).to eq(expected_result)
+      end
+    end
+
+    context "when max_stops is 1" do
+      let(:max_stops) { 1 }
+      let(:expected_result) do
+        [{
+          "origin_port" => "CNSHA",
+          "destination_port" => "ESBCN",
+          "departure_date" => "2022-02-01",
+          "arrival_date" => "2022-02-10",
+          "sailing_code" => "IJKL",
+          "rate" => "200.32",
+          "rate_currency" => "EUR"
+        },
+         {
+           "origin_port" => "ESBCN",
+           "destination_port" => "NLRTM",
+           "departure_date" => "2022-02-11",
+           "arrival_date" => "2022-02-20",
+           "sailing_code" => "MNOP",
+           "rate" => "200.32",
+           "rate_currency" => "EUR"
+         }]
+      end
+
+      it "returns the cheapest indirect sailing with only two shipment legs" do
+        expect(result).to eq(expected_result)
+      end
+    end
+
+    context "when max_stops is not given" do
+      let(:processor) do
+        described_class.new(
+          origin_port: "CNSHA",
+          destination_port:,
+          criteria: "cheapest"
+        )
+      end
+
+      let(:expected_result) do
+        [{
+          "origin_port" => "CNSHA",
+          "destination_port" => "ESBCN",
+          "departure_date" => "2022-02-01",
+          "arrival_date" => "2022-02-10",
+          "sailing_code" => "IJKL",
+          "rate" => "200.32",
+          "rate_currency" => "EUR"
+        },
+         {
+           "origin_port" => "ESBCN",
+           "destination_port" => "BRSSZ",
+           "departure_date" => "2022-02-11",
+           "arrival_date" => "2022-02-14",
+           "sailing_code" => "QRST",
+           "rate" => "100.32",
+           "rate_currency" => "EUR"
+         },
+         {
+           "origin_port" => "BRSSZ",
+           "destination_port" => "NLRTM",
+           "departure_date" => "2022-02-15",
+           "arrival_date" => "2022-02-18",
+           "sailing_code" => "UVWX",
+           "rate" => "50.32",
+           "rate_currency" => "EUR"
+         }]
+      end
+
+      it "returns the cheapest indirect sailing with no limit of the shipment legs" do
         expect(result).to eq(expected_result)
       end
     end
